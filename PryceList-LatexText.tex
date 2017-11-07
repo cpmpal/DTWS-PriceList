@@ -1,11 +1,46 @@
-\documentclass{article}
+\documentclass[10pt, letterpaper]{article}
+\usepackage[portrait, margin=0.25in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{multicol}
-\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{verbatim}
+\setlist{nosep}
+
+\setlength{\columnseprule}{0.5pt}
+\setlength{\columnsep}{1cm}
+
 
 \begin{document}
-  \begin{tabular}{r r r r r r r r}
-    \mutlicolumn{2}{l}{Night Shift} & & & & \multicolumn{2}{l}{Jack's Abby}& & \\ \hline
-    WhirlPool & & 16 oz & 14.99 \vline&   Post Shift & & 16 oz & 13.99 \\   
-  \end{tabular}
+  \begin{multicols}{3}
+  
+  \section*{Craft Beer List}
+  \subsection*{Night Shift Brewing}
+    \begin{itemize}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+    \end{itemize}
+  \subsection*{Jack's Abby}
+    \begin{itemize}
+    \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      \item[]\begin{tabular}{l c r}Whirlpool & 16 oz x 4 & 14.99\end{tabular}
+      
+    \end{itemize}
+  \end{multicols}
+  
+  \begin{comment}
+  %\begin{tabular}{r r r r r r r r}
+    %%\mutlicolumn{2}{l}{Night Shift} & & & & \multicolumn{2}{l}{Jack's Abby}& & \\ \hline
+    %WhirlPool & & 16 oz & 14.99 \vline&   Post Shift & & 16 oz & 13.99 \\   
+  %\end{tabular}
+  \end{comment}
 \end{document} 

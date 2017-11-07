@@ -24,11 +24,21 @@ class dtwsPriceScraper:
 		for i in bboxLines:
 			for j in i[u'spans']:
 				lines.append(j[u'text'])
+		
+
+		#check for barcode swallowing brewery
+		if not lines[0][-1].isdigit() and lines[0][0].isdigit():
+			try:
+				start = lines[0].index(' ')+1
+				lines.insert(1, lines[0][start:])
+				lines[0] = lines[0][0:start-1]
+			except ValueError:
+				pass
+			
 		return lines
 
 	#Regex product info for name, size, quantity and price
 	def productInfo(self, productLine):
-		print productLine
 		prog = re.compile('; ([\w \W]+) ([0-9]{1,3} [ozml]{1,3}) (1|4|6) ([0-9]{1,3}.[0-9]{2})')
 		info = prog.match(productLine)
 		return info.groups()
@@ -40,7 +50,6 @@ class dtwsPriceScraper:
 			productsBlob = page[u'blocks'][3:]
 			for bbox in productsBlob:
 				line = self.cleanBBox(bbox)
-				print(line)
 				if not line[0][0].isdigit():
 					productLine+=' '.join(line)+' '
 					self.products.append(productLine[:-1])
@@ -49,11 +58,13 @@ class dtwsPriceScraper:
 					line[1] = ';'+line[1]
 					if line[-1][-1].isdigit():
 						line[1] = line[1]+';'
+						productLine = ' '.join(line)
+						self.products.append(productLine)
+						productLine=''
 					else:
 						line[-1] = line[-1]+';'
-					productLine+=' '.join(line)+' '
-					
-		pprint(self.products)
+						productLine+= ' '.join(line)+' '
+
 
 	#Print products
 	def printProducts(self):
@@ -102,7 +113,7 @@ class dtwsPriceScraper:
 		self.productTable = {}
 		self.convertToJSON()
 		self.getProducts()
-		#self.createProductDict()		
+		self.createProductDict()		
 
 test = dtwsPriceScraper('PryceList-TestFile-2.xps')
-#test.printProducts()
+test.printProducts()
