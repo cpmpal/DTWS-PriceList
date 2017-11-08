@@ -1,7 +1,8 @@
 # Fdb version 3
-["pdflatex"] 1509933982 "PryceList-LatexText.tex" "PryceList-LatexText.pdf" "PryceList-LatexText" 1509933982
+["pdflatex"] 1510164483 "PryceList-LatexText.tex" "PryceList-LatexText.pdf" "PryceList-LatexText" 1510164483
   "/etc/texmf/web2c/texmf.cnf" 1506182484 475 c0e671620eb5563b2130f56340a5fde8 ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1272929888 3287 e6b82fe08f5336d4d5ebc73fb1152e87 ""
+  "/usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm" 1136768653 1328 c834bbb027764024c09d3d2bf908b5f0 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmbx12.tfm" 1136768653 1324 c910af8c371558dc20f2d7822f66fe64 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmr12.tfm" 1136768653 1288 655e228510b4c2a1abe905c368440826 ""
   "/usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb" 1248133631 32080 340ef9bf63678554ee606688e7b5339d ""
@@ -25,9 +26,9 @@
   "/usr/share/texmf/web2c/texmf.cnf" 1503343927 31343 93828589fb0cea665e553ee5a17ad2d4 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1506183385 127805 5c3c5fac7370b5e0b4000550316abe76 ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1506182505 718487 597f4b956da331b2e91f0eb1aff6579a ""
-  "PryceList-LatexText.aux" 1509933982 8 a94a2480d3289e625eea47cd1b285758 ""
-  "PryceList-LatexText.tex" 1509933982 1867 4d2649f13643bb7e25b7ed7389c8ed24 ""
+  "PryceList-LatexText.aux" 1510164483 8 a94a2480d3289e625eea47cd1b285758 ""
+  "PryceList-LatexText.tex" 1510164483 1891 68a3760ede9ac5f032818a3cba029daa ""
   (generated)
-  "PryceList-LatexText.pdf"
-  "PryceList-LatexText.log"
   "PryceList-LatexText.aux"
+  "PryceList-LatexText.log"
+  "PryceList-LatexText.pdf"

@@ -1,6 +1,10 @@
 #!/usr/bin/python
 
 import fitz
+from pylatex import Document, Tabular, MultiColumn, Section, Subsection, Description, Enumerate
+from pylatex.utils import NoEscape
+from pylatex.base_classes import Environment
+from pylatex.package import Package
 import sys, os
 import re
 import json
@@ -115,5 +119,55 @@ class dtwsPriceScraper:
 		self.getProducts()
 		self.createProductDict()		
 
-test = dtwsPriceScraper('PryceList-TestFile-2.xps')
-test.printProducts()
+
+class priceList:
+
+	class MultiCol(Environment):
+
+		packages = [Package('multicol')]
+		escape = False
+		content_seperator = "\n"
+		_latex_name = 'multicols'
+	
+	def __init__(self):
+		self.geometry_options = ["margin=0.25in", "portrait"]
+		self.document_options = ""
+		self.font_size = 'normalsize'
+		self.documentclass = "article"
+		self.inputenc = "utf8"
+		self.page_numbers = False
+		#self.data = NoEscape('\setlist{nosep}')
+		self.data = None
+		self.document = None	
+
+	def makeDoc(self, craftBeerDict):
+		self.document = Document(documentclass=self.documentclass, document_toptions=self.document_options, font_size=self.font_size, page_numbers=self.page_numbers, inputenc=self.inputenc, geometry_options=self.geometry_options, data=self.data)
+		
+		# Force enumitem package into document to change list seperation values
+		self.document.packages.add(NoEscape('\usepackage{enumitem}'))
+		self.document._propagate_packages()
+		self.document.append(NoEscape('\setlist{nosep}'))
+		self.document.append(NoEscape('\setlength{\columnseprule}{0.5pt}'))
+		self.document.append(NoEscape('\setlength{\columnsep}{1cm}'))
+
+		with self.document.create(self.MultiCol(arguments='3')):
+			self.document.append(Section('Craft Beer List', numbering=False))
+			for brewery in craftBeerDict.keys():
+				with self.document.create(Subsection(brewery, numbering=False)):
+					with self.document.create(Description()) as breweryList:
+						for beer in craftBeerDict[brewery]:
+							row = Tabular('l c r')
+							row.add_row([beer['product'], beer['size']+' x '+beer['pack'], beer['price']])
+							breweryList.add_item("", row)
+	
+		self.document.generate_pdf('full', clean_tex=False, silent=False)
+
+
+
+if __name__ == '__main__':
+	test = dtwsPriceScraper('PryceList-TestFile-2.xps')
+	test.printProducts()
+
+	textTest = priceList()
+	textTest.makeDoc(test.productTable)
+
