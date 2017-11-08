@@ -160,7 +160,7 @@ class priceList:
 							row.add_row([beer['product'], beer['size']+' x '+beer['pack'], beer['price']])
 							breweryList.add_item("", row)
 	
-		self.document.generate_pdf('full', clean_tex=False, silent=False)
+		self.document.generate_pdf('full', clean=True, clean_tex=False, silent=False)
 
 
 
