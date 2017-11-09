@@ -5,10 +5,16 @@ from pylatex import Document, Tabular, MultiColumn, Section, Subsection, Descrip
 from pylatex.utils import NoEscape
 from pylatex.base_classes import Environment
 from pylatex.package import Package
+from datetime import date
 import sys, os
 import re
 import json
 from pprint import pprint
+
+# quick wrapper to get the current date string
+def listDate():
+	dat = date.today()
+	return(str(dat.month) + '/' + str(dat.day))
 
 class dtwsPriceScraper:
 	
@@ -96,7 +102,10 @@ class dtwsPriceScraper:
 					newProduct['product'] = info[0].capitalize()
 					newProduct['size'] = info[1]
 					newProduct['pack'] = info[2]
-					newProduct['price'] = info[3]
+					price = float(info[3])
+					price += 0.05*int(info[2])
+					price = str(price)
+					newProduct['price'] = price
 					if newProduct['brewery'] not in self.productTable:
 						self.productTable[newProduct['brewery']] = [newProduct]
 					else:
@@ -129,45 +138,53 @@ class priceList:
 		content_seperator = "\n"
 		_latex_name = 'multicols'
 	
-	def __init__(self):
+	def __init__(self, pdfName='full'):
 		self.geometry_options = ["margin=0.25in", "portrait"]
 		self.document_options = ""
 		self.font_size = 'normalsize'
 		self.documentclass = "article"
 		self.inputenc = "utf8"
 		self.page_numbers = False
-		#self.data = NoEscape('\setlist{nosep}')
 		self.data = None
-		self.document = None	
+		self.document = None
+		self.pdfName = pdfName	
 
 	def makeDoc(self, craftBeerDict):
 		self.document = Document(documentclass=self.documentclass, document_toptions=self.document_options, font_size=self.font_size, page_numbers=self.page_numbers, inputenc=self.inputenc, geometry_options=self.geometry_options, data=self.data)
 		
 		# Force enumitem package into document to change list seperation values
 		self.document.packages.add(NoEscape('\usepackage{enumitem}'))
+		self.document.packages.add(NoEscape('\usepackage[T1]{fontenc}'))
+		self.document.packages.add(NoEscape('\usepackage{nimbussans}'))
 		self.document._propagate_packages()
 		self.document.append(NoEscape('\setlist{nosep}'))
 		self.document.append(NoEscape('\setlength{\columnseprule}{0.5pt}'))
 		self.document.append(NoEscape('\setlength{\columnsep}{1cm}'))
+		self.document.append(NoEscape('\\renewcommand{\\familydefault}{\sfdefault}'))
+		self.document.append(NoEscape('\sffamily'))
 
 		with self.document.create(self.MultiCol(arguments='3')):
-			self.document.append(Section('Craft Beer List', numbering=False))
+			self.document.append(Section(NoEscape('\\fontfamily{fvm}\selectfont Craft Beer List '+listDate()), numbering=False))
 			for brewery in craftBeerDict.keys():
 				with self.document.create(Subsection(brewery, numbering=False)):
-					with self.document.create(Description()) as breweryList:
+					with self.document.create(Tabular('l c r')) as brewTable:
+
 						for beer in craftBeerDict[brewery]:
-							row = Tabular('l c r')
-							row.add_row([beer['product'], beer['size']+' x '+beer['pack'], beer['price']])
-							breweryList.add_item("", row)
+							brewTable.add_row([beer['product'], beer['size']+' x '+beer['pack'], beer['price']])
 	
-		self.document.generate_pdf('full', clean=True, clean_tex=False, silent=False)
+		self.document.generate_pdf(self.pdfName, clean=True, clean_tex=False, silent=False)
 
 
 
 if __name__ == '__main__':
+	if len(sys.argv) > 1:
+		pdfName = sys.argv[1]
+	else:
+		pdfName = "craft-beer-list-"+listDate().replace('/', '-')
+
 	test = dtwsPriceScraper('PryceList-TestFile-2.xps')
 	test.printProducts()
 
-	textTest = priceList()
+	textTest = priceList(pdfName)
 	textTest.makeDoc(test.productTable)
 
