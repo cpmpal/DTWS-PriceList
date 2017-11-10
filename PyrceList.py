@@ -37,6 +37,19 @@ class dtwsPriceScraper:
 		
 
 		#check for barcode swallowing brewery
+		print lines
+		barcodeSplitter = re.compile('([0-9]{1,3}\.{0,1}[0-9]{1,2}) ?([ozmlOZML]{1,3})')
+		if len(lines) == 11:
+			swallow = barcodeSplitter.search(lines[3])
+			if swallow is None:
+				barcodeBrand = lines[0].split(' ',1)
+				print barcodeBrand
+				lines[0] = barcodeBrand[0]
+				lines.insert(1, barcodeBrand[1])
+		
+		print lines
+		
+		'''
 		if not lines[0][-1].isdigit() and lines[0][0].isdigit():
 			try:
 				start = lines[0].index(' ')+1
@@ -44,25 +57,45 @@ class dtwsPriceScraper:
 				lines[0] = lines[0][0:start-1]
 			except ValueError:
 				pass
-			
+		'''
+
 		return lines
 
 	#Regex product info for name, size, quantity and price
 	def productInfo(self, productLine):
-		prog = re.compile('; ([\w \W]+) ([0-9]{1,3} [ozml]{1,3}) (1|4|6) ([0-9]{1,3}.[0-9]{2})')
+		prog = re.compile('; ([\w \W]+) ([0-9]{1,3}\.{0,1}[0-9]{1,2} ?[ozmlOZML]{1,3}) (1|4|6) ([0-9]{1,3}.[0-9]{2})')
 		info = prog.match(productLine)
+		if info is None:
+			print productLine
 		return info.groups()
 
 	#Create array of the product lines
 	def getProducts(self):
 		productLine = ''
+		twoLine = False
 		for page in self.json:
 			productsBlob = page[u'blocks'][3:]
 			for bbox in productsBlob:
 				line = self.cleanBBox(bbox)
+				#print "RAW:  "+' '.join(line)
+				if len(line) <= 3:
+					line[1] = ';'+line[1]
+					line[-1]+=';'
+					productLine+=' '.join(line)+' '	
+					twoLine = True
+				else:
+					if not twoLine:
+						line[1] = ';'+line[1]+';'
+					productLine+=' '.join(line)+' '
+					#print 'LINE: '+ productLine
+					self.products.append(productLine[:-1])
+					twoLine = False
+					productLine = ''
+				'''
 				if not line[0][0].isdigit():
 					productLine+=' '.join(line)+' '
 					self.products.append(productLine[:-1])
+					print productLine
 					productLine=''
 				else:	
 					line[1] = ';'+line[1]
@@ -70,12 +103,13 @@ class dtwsPriceScraper:
 						line[1] = line[1]+';'
 						productLine = ' '.join(line)
 						self.products.append(productLine)
+						print productLine
 						productLine=''
 					else:
 						line[-1] = line[-1]+';'
 						productLine+= ' '.join(line)+' '
 
-
+				'''
 	#Print products
 	def printProducts(self):
 		pprint(self.productTable)
@@ -92,6 +126,7 @@ class dtwsPriceScraper:
 				brandH = product.index(';', brandL+1)
 				currentBrand = product[brandL:brandH]
 				info = self.productInfo(product[brandH:])
+				print info
 				if info is None:
 					print product
 					continue
@@ -99,7 +134,14 @@ class dtwsPriceScraper:
 					continue
 				else:
 					newProduct['brewery'] = currentBrand.capitalize()
-					newProduct['product'] = info[0].capitalize()
+					#truncate product name for ease of formatting
+					name = info[0].capitalize()
+					'''
+					if len(info[0]) > 16:
+						name = info[0][:15]+u'\u2026'
+						name = name.capitalize()
+					'''
+					newProduct['product'] = name
 					newProduct['size'] = info[1]
 					newProduct['pack'] = info[2]
 					price = float(info[3])
@@ -149,6 +191,14 @@ class priceList:
 		self.document = None
 		self.pdfName = pdfName	
 
+	def productNameWrapped(self, prod):
+		if len(prod) > 18:
+			if len(prod) >= 16*2:
+				prod[32:]=u'\u2026'
+			return NoEscape('\multirow{1}{15ex}{'+prod+'}')
+		else:
+			return prod
+
 	def makeDoc(self, craftBeerDict):
 		self.document = Document(documentclass=self.documentclass, document_toptions=self.document_options, font_size=self.font_size, page_numbers=self.page_numbers, inputenc=self.inputenc, geometry_options=self.geometry_options, data=self.data)
 		
@@ -156,6 +206,7 @@ class priceList:
 		self.document.packages.add(NoEscape('\usepackage{enumitem}'))
 		self.document.packages.add(NoEscape('\usepackage[T1]{fontenc}'))
 		self.document.packages.add(NoEscape('\usepackage{nimbussans}'))
+		self.document.packages.add(NoEscape('\usepackage{multirow}'))
 		self.document._propagate_packages()
 		self.document.append(NoEscape('\setlist{nosep}'))
 		self.document.append(NoEscape('\setlength{\columnseprule}{0.5pt}'))
@@ -170,8 +221,9 @@ class priceList:
 					with self.document.create(Tabular('l c r')) as brewTable:
 
 						for beer in craftBeerDict[brewery]:
-							brewTable.add_row([beer['product'], beer['size']+' x '+beer['pack'], beer['price']])
-	
+							brewTable.add_row([self.productNameWrapped(beer['product']), beer['size']+' x '+beer['pack'], beer['price']])
+							if len(beer['product']) > 18:
+								brewTable.add_empty_row()
 		self.document.generate_pdf(self.pdfName, clean=True, clean_tex=False, silent=False)
 
 
@@ -182,7 +234,12 @@ if __name__ == '__main__':
 	else:
 		pdfName = "craft-beer-list-"+listDate().replace('/', '-')
 
-	test = dtwsPriceScraper('PryceList-TestFile-2.xps')
+	if len(sys.argv) > 2:
+		xpsFile = sys.argv[2]
+	else:
+		xpfFile = 'PryceList-TestFile-2.xps'
+
+	test = dtwsPriceScraper(xpsFile)
 	test.printProducts()
 
 	textTest = priceList(pdfName)
