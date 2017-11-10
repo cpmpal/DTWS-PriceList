@@ -46,7 +46,12 @@ class dtwsPriceScraper:
 				print barcodeBrand
 				lines[0] = barcodeBrand[0]
 				lines.insert(1, barcodeBrand[1])
-		
+	
+		if len(lines) == 2:
+			barcodeBrand = lines[0].split(' ',1)
+			lines[0] = barcodeBrand[0]
+			lines.insert(1, barcodeBrand[1])
+	
 		print lines
 		
 		'''
