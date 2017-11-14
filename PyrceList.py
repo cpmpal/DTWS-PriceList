@@ -11,6 +11,8 @@ import re
 import json
 from pprint import pprint
 
+listName = ''
+
 # quick wrapper to get the current date string
 def listDate():
 	dat = date.today()
@@ -27,6 +29,17 @@ class dtwsPriceScraper:
 			jsonBlob = p.getText('json')
 			self.json.append(json.loads(jsonBlob))
 
+	'''
+	def splitItems(lines):
+		barcodeSplitter = re.compile('([0-9]{1,3}\.{0,1}[0-9]{1,2}) ?([ozmlOZML]{1,3})')
+		actuallyFound = False
+		for i in range(8):
+			found = barcodeSplitter.search(lines[i])
+			if found is not None:
+				actuallyFound = True
+	'''			
+
+
 	#Helper method to scrape out relevant text from json
 	def cleanBBox(self, bbox):
 		bboxLines = bbox[u'lines']
@@ -38,11 +51,15 @@ class dtwsPriceScraper:
 
 		#check for barcode swallowing brewery
 		print lines
+		print "^ line ^"
 		barcodeSplitter = re.compile('([0-9]{1,3}\.{0,1}[0-9]{1,2}) ?([ozmlOZML]{1,3})')
 		if len(lines) == 11:
-			swallow = barcodeSplitter.search(lines[3])
+			
+			swallow = barcodeSplitter.search(lines[3])		
 			if swallow is None:
+				return -1
 				barcodeBrand = lines[0].split(' ',1)
+				print "test"
 				print barcodeBrand
 				lines[0] = barcodeBrand[0]
 				lines.insert(1, barcodeBrand[1])
@@ -71,6 +88,7 @@ class dtwsPriceScraper:
 		prog = re.compile('; ([\w \W]+) ([0-9]{1,3}\.{0,1}[0-9]{1,2} ?[ozmlOZML]{1,3}) (1|4|6) ([0-9]{1,3}.[0-9]{2})')
 		info = prog.match(productLine)
 		if info is None:
+			return None
 			print productLine
 		return info.groups()
 
@@ -83,7 +101,9 @@ class dtwsPriceScraper:
 			for bbox in productsBlob:
 				line = self.cleanBBox(bbox)
 				#print "RAW:  "+' '.join(line)
-				if len(line) <= 3:
+				if line == -1:
+					continue
+				if len(line) <= 4:
 					line[1] = ';'+line[1]
 					line[-1]+=';'
 					productLine+=' '.join(line)+' '	
@@ -220,7 +240,7 @@ class priceList:
 		self.document.append(NoEscape('\sffamily'))
 
 		with self.document.create(self.MultiCol(arguments='3')):
-			self.document.append(Section(NoEscape('\\fontfamily{fvm}\selectfont Craft Beer List '+listDate()), numbering=False))
+			self.document.append(Section(NoEscape('\\fontfamily{fvm}\selectfont '+listName), numbering=False))
 			for brewery in craftBeerDict.keys():
 				with self.document.create(Subsection(brewery, numbering=False)):
 					with self.document.create(Tabular('l c r')) as brewTable:
@@ -234,13 +254,18 @@ class priceList:
 
 
 if __name__ == '__main__':
-	if len(sys.argv) > 1:
-		pdfName = sys.argv[1]
+	if len(sys.argv) > 3:
+		listName = sys.argv[3]
+	else:
+		listName = "Craft Beer List"+listDate()
+
+	if len(sys.argv) > 2:
+		pdfName = sys.argv[2]
 	else:
 		pdfName = "craft-beer-list-"+listDate().replace('/', '-')
 
-	if len(sys.argv) > 2:
-		xpsFile = sys.argv[2]
+	if len(sys.argv) > 1:
+		xpsFile = sys.argv[1]
 	else:
 		xpfFile = 'PryceList-TestFile-2.xps'
 
