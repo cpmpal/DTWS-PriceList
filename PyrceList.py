@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import fitz
+from math import floor
+import copy
 from pylatex import Document, Tabular, MultiColumn, Section, Subsection, Description, Enumerate
 from pylatex.utils import NoEscape
 from pylatex.base_classes import Environment
@@ -9,9 +11,23 @@ from datetime import date
 import sys, os
 import re
 import json
+from decimal import *
 from pprint import pprint
 
+#tweak for pdf pixel sensitivity
+DELTA = Decimal('2')
 listName = ''
+
+def withinOff(current, test):
+	current = Decimal('%.3f' % current)
+	test = Decimal('%.3f' % test)
+	print current, test
+	testLeft = current <= test + DELTA
+	testRight = current >= test -DELTA
+	print testLeft, testRight
+	return testLeft and testRight
+	
+
 
 # quick wrapper to get the current date string
 def listDate():
@@ -29,63 +45,152 @@ class dtwsPriceScraper:
 			jsonBlob = p.getText('json')
 			self.json.append(json.loads(jsonBlob))
 
-	'''
-	def splitItems(lines):
-		barcodeSplitter = re.compile('([0-9]{1,3}\.{0,1}[0-9]{1,2}) ?([ozmlOZML]{1,3})')
-		actuallyFound = False
-		for i in range(8):
-			found = barcodeSplitter.search(lines[i])
-			if found is not None:
-				actuallyFound = True
-	'''			
+	#Check if bbox is a single line or part of multiple lines
+	def isSingleBbox(self, bbox):	
+		s = bbox[u'lines'][-1][u'spans'] 
+		return len(s) >= 4 and withinOff(s[-4][u'bbox'][0], Decimal('592.323'))
+
+	# Big helper class for bbox functions to check offsets and contents
+	class bboxMajor:
+		
+		barcodeOff = Decimal('24.5999')
+		breweryOff = Decimal('109.515')
+		beerOff = Decimal('199.221')
+		sizeOff = Decimal('341.312')
+
+		
+		def fullSpan(self):
+			for l in self.lines:
+				for text in l.spans:
+					self.span.append(text)
+			self.size = len(self.span)
+		
+		def fullLine(self):
+			full = []
+			for b in self.span:
+				full.append(b.text)
+			return full
+		
+		def hasBarcode(self):
+			return withinOff(self.span[0].xOffLeft, self.barcodeOff)
+		def hasBrewery(self):
+			return withinOff(self.span[1].xOffLeft, self.breweryOff)
+		def hasBeer(self):
+			return withinOff(self.span[2].xOffLeft, self.beerOff)
+		def hasSize(self):
+			if len(self.span) > 12:
+				i = len(self.span) - 12 + 3
+			else:
+				i = 3
+			if len(self.span) <= 4: return False
+			print(i, withinOff(self.span[i].xOffLeft, self.sizeOff))
+			return withinOff(self.span[i].xOffLeft, self.sizeOff)
+		
+		def addBox(self, boxes):
+			bb = dtwsPriceScraper.bboxMajor(boxes)
+			once = False
+			for b in self.span:
+				if withinOff(b.xOffLeft, self.breweryOff) and not once:
+					b.text = ';'+b.text
+					once = True
+			pprint(bb.span)
+			self.span[-1].text += ';'
+			self.span.extend(bb.span)
+			self.size = len(self.span)
+			print self.size
+			
+		def splitBrewery(self):
+			bboxNew = copy.deepcopy(self.span[0])
+			bboxNew.text = bboxNew.text.split(' ')[1]
+			print(bboxNew.text)
+			bboxNew.xOffLeft = self.breweryOff
+			self.span[0].text = self.span[0].text.split(' ')[0]
+			self.span.insert(1, bboxNew)
+		
+		def splitSize(self):
+			sz = re.compile('([0-9]{1,3}\.{0,1}[0-9]{1,2} ?[ozmlOZML]{1,3})')
+			bboxNew = None
+			for b in self.span:
+				print b.xOffLeft
+				if withinOff(b.xOffLeft, self.beerOff):
+					bboxNew = copy.deepcopy(b)
+					print bboxNew.text
+			print 'shit'
+			print bboxNew
+			bboxNew.text = sz.split(bboxNew.text)[1]
+			bboxNew.xOffLeft = self.sizeOff
+			self.span[2].text = sz.split(self.span[2].text)[0]
+			self.span.insert(3, bboxNew)	
+
+		def __repr__(self):
+			b = ''
+			b += 'xL:'+str(self.xOffLeft)+'\n'
+			b += 'yU:'+str(self.yOffUp)+'\n'
+			b += 'yD:'+str(self.yOffDown)+'\n'
+			b += 'xR:'+str(self.xOffRight)+'\n'
+			if self.lines:
+				for l in self.lines:
+					b += '----------\n'
+					b += l.__repr__()
+			elif self.spans:
+				for s in self.spans:
+					b += '==========\n'
+					b += s.__repr__()
+			else:
+				b += 'text: '+self.text + '\n'
+			return b
+
+		def __init__(self, box):
+			self.xOffLeft = Decimal('%.3f' % box[u'bbox'][0])
+			self.yOffUp = Decimal('%.3f' % box[u'bbox'][1])
+			self.yOffDown = Decimal('%.3f' % box[u'bbox'][2])
+			self.xOffRight = Decimal('%.3f' % box[u'bbox'][3])
+			self.lines = []
+			self.spans = []
+			self.text = ''
+			self.size = -1
+			self.span = []
+			if u'lines' in box:
+				for b in box[u'lines']:
+					self.lines.append(dtwsPriceScraper.bboxMajor(b))
+			if u'spans' in box:
+				for b in box[u'spans']:
+					self.spans.append(dtwsPriceScraper.bboxMajor(b))
+			if u'text' in box: 
+				self.text = box[u'text']
+			self.fullSpan()
 
 
 	#Helper method to scrape out relevant text from json
 	def cleanBBox(self, bbox):
-		bboxLines = bbox[u'lines']
 		lines = []
-		for i in bboxLines:
-			for j in i[u'spans']:
-				lines.append(j[u'text'])
-		
-
-		#check for barcode swallowing brewery
-		print lines
-		print "^ line ^"
-		barcodeSplitter = re.compile('([0-9]{1,3}\.{0,1}[0-9]{1,2}) ?([ozmlOZML]{1,3})')
-		if len(lines) == 11:
-			
-			swallow = barcodeSplitter.search(lines[3])		
-			if swallow is None:
-				return -1
-				barcodeBrand = lines[0].split(' ',1)
-				print "test"
-				print barcodeBrand
-				lines[0] = barcodeBrand[0]
-				lines.insert(1, barcodeBrand[1])
-	
-		if len(lines) == 2:
-			barcodeBrand = lines[0].split(' ',1)
-			lines[0] = barcodeBrand[0]
-			lines.insert(1, barcodeBrand[1])
-	
-		print lines
-		
-		'''
-		if not lines[0][-1].isdigit() and lines[0][0].isdigit():
-			try:
-				start = lines[0].index(' ')+1
-				lines.insert(1, lines[0][start:])
-				lines[0] = lines[0][0:start-1]
-			except ValueError:
-				pass
-		'''
-
-		return lines
+		pprint(bbox)
+		#raw_input("raw bbox")
+		currBox = self.bboxMajor(bbox[0])
+		pprint(currBox)
+		print currBox.fullLine()
+		pprint(currBox.span)
+		#raw_input('full bbox')
+		if not currBox.hasBeer() and len(currBox.span) <= 4:
+			currBox.addBox(bbox[1])
+		else:
+			currBox.span[1].text = ';'+ currBox.span[1].text + ';'
+		b = currBox
+		pprint(b.span)
+		#raw_input("test")
+		#LiquorPOS wraps bewery name, so only barcode/brewery and product/size
+		#can become intermingled
+		if not b.hasBarcode():
+			return -1
+		if not b.hasBrewery():
+			b.splitBrewery()
+		if not b.hasSize():
+			b.splitSize()
+		return b.fullLine()
 
 	#Regex product info for name, size, quantity and price
 	def productInfo(self, productLine):
-		prog = re.compile('; ([\w \W]+) ([0-9]{1,3}\.{0,1}[0-9]{1,2} ?[ozmlOZML]{1,3}) (1|4|6) ([0-9]{1,3}.[0-9]{2})')
+		prog = re.compile('; ([0-9\w \W]+) ([0-9]{1,3}\.{0,1}[0-9]{1,2} [ozmlOZML]{1,2}) ([1246]{1,3}) ([0-9]{1,3}.[0-9]{2})')
 		info = prog.match(productLine)
 		if info is None:
 			return None
@@ -98,43 +203,18 @@ class dtwsPriceScraper:
 		twoLine = False
 		for page in self.json:
 			productsBlob = page[u'blocks'][3:]
+			boxes = []
 			for bbox in productsBlob:
-				line = self.cleanBBox(bbox)
-				#print "RAW:  "+' '.join(line)
-				if line == -1:
+				boxes.append(bbox)
+				pprint(boxes)
+				if not self.isSingleBbox(bbox):	
 					continue
-				if len(line) <= 4:
-					line[1] = ';'+line[1]
-					line[-1]+=';'
-					productLine+=' '.join(line)+' '	
-					twoLine = True
 				else:
-					if not twoLine:
-						line[1] = ';'+line[1]+';'
-					productLine+=' '.join(line)+' '
-					#print 'LINE: '+ productLine
-					self.products.append(productLine[:-1])
-					twoLine = False
-					productLine = ''
-				'''
-				if not line[0][0].isdigit():
+					line = self.cleanBBox(boxes)
 					productLine+=' '.join(line)+' '
 					self.products.append(productLine[:-1])
-					print productLine
-					productLine=''
-				else:	
-					line[1] = ';'+line[1]
-					if line[-1][-1].isdigit():
-						line[1] = line[1]+';'
-						productLine = ' '.join(line)
-						self.products.append(productLine)
-						print productLine
-						productLine=''
-					else:
-						line[-1] = line[-1]+';'
-						productLine+= ' '.join(line)+' '
-
-				'''
+					boxes = []
+					productLine = ''	
 	#Print products
 	def printProducts(self):
 		pprint(self.productTable)
@@ -147,15 +227,21 @@ class dtwsPriceScraper:
 		for product in self.products:
 			newProduct = {}
 			try:
+				print(product)
+				raw_input("prod")
 				brandL = product.index(';')+1
 				brandH = product.index(';', brandL+1)
 				currentBrand = product[brandL:brandH]
 				info = self.productInfo(product[brandH:])
-				print info
 				if info is None:
+					print("None Info?")
 					print product
+					raw_input("wtf")
 					continue
 				if not info:
+					print("False info?")
+					print info
+					raw_input("false")
 					continue
 				else:
 					newProduct['brewery'] = currentBrand.capitalize()
@@ -175,9 +261,10 @@ class dtwsPriceScraper:
 					newProduct['price'] = price
 					if newProduct['brewery'] not in self.productTable:
 						self.productTable[newProduct['brewery']] = [newProduct]
+						print("new brew")
 					else:
 						self.productTable[newProduct['brewery']].append(newProduct)
-
+						print("append brew")
 			except ValueError:
 				continue
 
@@ -217,12 +304,14 @@ class priceList:
 		self.pdfName = pdfName	
 
 	def productNameWrapped(self, prod):
-		if len(prod) > 18:
-			if len(prod) >= 16*2:
-				prod[32:]=u'\u2026'
-			return NoEscape('\multirow{1}{15ex}{'+prod+'}')
+		name = prod
+		if len(name) > 18:
+			if len(name) >= 16*2:
+				name[32:]=u'\u2026'
+				
+			return NoEscape('\multirow{1}{15ex}{'+name+'}')
 		else:
-			return prod
+			return name
 
 	def makeDoc(self, craftBeerDict):
 		self.document = Document(documentclass=self.documentclass, document_toptions=self.document_options, font_size=self.font_size, page_numbers=self.page_numbers, inputenc=self.inputenc, geometry_options=self.geometry_options, data=self.data)
@@ -257,7 +346,7 @@ if __name__ == '__main__':
 	if len(sys.argv) > 3:
 		listName = sys.argv[3]
 	else:
-		listName = "Craft Beer List"+listDate()
+		listName = "Craft Beer List "+listDate()
 
 	if len(sys.argv) > 2:
 		pdfName = sys.argv[2]
