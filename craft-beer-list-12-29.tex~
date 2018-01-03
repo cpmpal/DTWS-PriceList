@@ -9,15 +9,10 @@
 \usepackage{nimbussans}%
 \usepackage{multirow}%
 \usepackage{multicol}%
-\usepackage{hanging}%
-\usepackage{array}
-\usepackage[table]{xcolor}
 %
-
+%
 %
 \begin{document}%
-\definecolor{pastelblue}{HTML}{AEC6CF}
-\definecolor{lightgray}{gray}{0.9}
 \pagestyle{empty}%
 \normalsize%
 \setlist{nosep}%
@@ -29,7 +24,6 @@
 \section*{\fontfamily{fvm}\selectfont Craft Beer List 12/29}%
 
 %
-\rowcolors{1}{}{pastelblue}
 \subsection*{Jack's abby}%
 \begin{tabular}{l c r}%
 Copper legend&16 oz x 6&10.99\\%
@@ -47,7 +41,7 @@ Smoke \& dagger&12 oz x 6&11.99\\%
 
 %
 \subsection*{Castle island}%
-\begin{tabular}{>{\raggedright}p{16ex\hangindent=3ex}l c r}%
+\begin{tabular}{l c r}%
 Candlepin&16 oz x 6&12.99\\%
 Chuck&16 oz x 4&12.99\\%
 Festbier&16 oz x 4&12.99\\%
@@ -56,7 +50,8 @@ Jetty&16 oz x 4&13.99\\%
 Keeper&16 oz x 4&11.99\\%
 Mo' pils&16 oz x 4&11.99\\%
 Palmside&16 oz x 4&14.99\\%
-Strange arrangement&16 oz x 4&14.99\\[0pt]%
+\multirow{1}{15ex}{Strange arrangement}&16 oz x 4&14.99\\%
+&&\\%
 Sweet brown&16 oz x 4&14.99\\%
 Tbd&16 oz x 4&14.99\\%
 Vern&16 oz x 4&12.99\\%
@@ -110,25 +105,32 @@ Wolfgeist&16 oz x 4&12.99\\%
 
 %
 \subsection*{Harpoon}%
-\begin{tabular}{>{\raggedright}p{14ex\hangindent=3ex}r c r}%
+\begin{tabular}{l c r}%
 12pk can cider&12 oz x 12&20.2\\%
-\textcolor{pastelblue}{12pk can ipa}&12 oz x 12&19.0\\%
-12pk can pumpkin cid&12 oz x 12&18.0\\%
+12pk can ipa&12 oz x 12&19.0\\%
+\multirow{1}{15ex}{12pk can pumpkin cid}&12 oz x 12&18.0\\%
+&&\\%
 12pk can take five&16 oz x 12&20.0\\%
 12pk can ufo white&12 oz x 12&19.5\\%
 12pk ipa bottle&12 oz x 12&18.0\\%
-12pk sweet spot cans&12 oz x 12&19.0\\%
+\multirow{1}{15ex}{12pk sweet spot cans}&12 oz x 12&19.0\\%
+&&\\%
 12pk ufo white bot&12 oz x 12&19.5\\%
 12pk winter warmer&12 oz x 12&19.0\\%
 Cider 6pk&12 oz x 6&10.8\\%
-House golden 6pk bot&12 oz x 6&10.5\\%
+\multirow{1}{15ex}{House golden 6pk bot}&12 oz x 6&10.5\\%
+&&\\%
 Ipa 6 pack bottle&12 oz x 6&10.5\\%
-Octoberfest 12pk can&12 oz x 12&21.25\\%
+\multirow{1}{15ex}{Octoberfest 12pk can}&12 oz x 12&21.25\\%
+&&\\%
 Raspberry ufo&12 oz x 6&10.5\\%
 Take 5 6pk&12 oz x 6&10.5\\%
-Ufo cranberry 12pkbot&12 oz x 12&21.25\\%
-Ufo white 6pk bottle&12 oz x 6&10.5\\%
-Ufo winter blond 6pkb&12 oz x 6&10.5\\%
+\multirow{1}{15ex}{Ufo cranberry 12pkbot }&12 oz x 12&21.25\\%
+&&\\%
+\multirow{1}{15ex}{Ufo white 6pk bottle}&12 oz x 6&10.5\\%
+&&\\%
+\multirow{1}{15ex}{Ufo winter blond 6pkb}&12 oz x 6&10.5\\%
+&&\\%
 Winter&12 oz x 12&10.8\\%
 Winter warmer 6 pk&12 oz x 6&10.5\\%
 \end{tabular}

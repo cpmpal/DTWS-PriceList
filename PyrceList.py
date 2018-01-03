@@ -8,7 +8,7 @@ from pylatex.utils import NoEscape
 from pylatex.base_classes import Environment
 from pylatex.package import Package
 from datetime import date
-import sys, os
+import sys, os, subprocess
 import re
 import json
 from decimal import *
@@ -21,10 +21,8 @@ listName = ''
 def withinOff(current, test):
 	current = Decimal('%.3f' % current)
 	test = Decimal('%.3f' % test)
-	print current, test
 	testLeft = current <= test + DELTA
 	testRight = current >= test -DELTA
-	print testLeft, testRight
 	return testLeft and testRight
 	
 
@@ -83,7 +81,7 @@ class dtwsPriceScraper:
 			else:
 				i = 3
 			if len(self.span) <= 4: return False
-			print(i, withinOff(self.span[i].xOffLeft, self.sizeOff))
+			#print(i, withinOff(self.span[i].xOffLeft, self.sizeOff))
 			return withinOff(self.span[i].xOffLeft, self.sizeOff)
 		
 		def addBox(self, boxes):
@@ -93,30 +91,31 @@ class dtwsPriceScraper:
 				if withinOff(b.xOffLeft, self.breweryOff) and not once:
 					b.text = ';'+b.text
 					once = True
-			pprint(bb.span)
+			#pprint(bb.span)
 			self.span[-1].text += ';'
 			self.span.extend(bb.span)
 			self.size = len(self.span)
-			print self.size
+			#print self.size
 			
 		def splitBrewery(self):
 			bboxNew = copy.deepcopy(self.span[0])
 			bboxNew.text = bboxNew.text.split(' ')[1]
-			print(bboxNew.text)
+			#print(bboxNew.text)
 			bboxNew.xOffLeft = self.breweryOff
 			self.span[0].text = self.span[0].text.split(' ')[0]
 			self.span.insert(1, bboxNew)
+			#raw_input("test")
 		
 		def splitSize(self):
 			sz = re.compile('([0-9]{1,3}\.{0,1}[0-9]{1,2} ?[ozmlOZML]{1,3})')
 			bboxNew = None
 			for b in self.span:
-				print b.xOffLeft
+				#print b.xOffLeft
 				if withinOff(b.xOffLeft, self.beerOff):
 					bboxNew = copy.deepcopy(b)
-					print bboxNew.text
-			print 'shit'
-			print bboxNew
+					#print bboxNew.text
+			#print 'shit'
+			#print bboxNew
 			bboxNew.text = sz.split(bboxNew.text)[1]
 			bboxNew.xOffLeft = self.sizeOff
 			self.span[2].text = sz.split(self.span[2].text)[0]
@@ -164,19 +163,19 @@ class dtwsPriceScraper:
 	#Helper method to scrape out relevant text from json
 	def cleanBBox(self, bbox):
 		lines = []
-		pprint(bbox)
+		#pprint(bbox)
 		#raw_input("raw bbox")
 		currBox = self.bboxMajor(bbox[0])
-		pprint(currBox)
-		print currBox.fullLine()
-		pprint(currBox.span)
+		#pprint(currBox)
+		#print currBox.fullLine()
+		#pprint(currBox.span)
 		#raw_input('full bbox')
+		addBoxCalled = False
 		if not currBox.hasBeer() and len(currBox.span) <= 4:
 			currBox.addBox(bbox[1])
-		else:
-			currBox.span[1].text = ';'+ currBox.span[1].text + ';'
+			addBoxCalled = True
 		b = currBox
-		pprint(b.span)
+		#pprint(b.span)
 		#raw_input("test")
 		#LiquorPOS wraps bewery name, so only barcode/brewery and product/size
 		#can become intermingled
@@ -186,6 +185,8 @@ class dtwsPriceScraper:
 			b.splitBrewery()
 		if not b.hasSize():
 			b.splitSize()
+		if not addBoxCalled:
+			b.span[1].text = ';'+b.span[1].text+';'
 		return b.fullLine()
 
 	#Regex product info for name, size, quantity and price
@@ -194,6 +195,7 @@ class dtwsPriceScraper:
 		info = prog.match(productLine)
 		if info is None:
 			return None
+			print "Could not match product:"
 			print productLine
 		return info.groups()
 
@@ -206,7 +208,7 @@ class dtwsPriceScraper:
 			boxes = []
 			for bbox in productsBlob:
 				boxes.append(bbox)
-				pprint(boxes)
+				#pprint(boxes)
 				if not self.isSingleBbox(bbox):	
 					continue
 				else:
@@ -217,6 +219,9 @@ class dtwsPriceScraper:
 					productLine = ''	
 	#Print products
 	def printProducts(self):
+		print "============================="
+		print "    FORMATTED DICTIONARY     "
+		print "============================="
 		pprint(self.productTable)
 
 	#Create dictionary of breweries with products as list of product dictionaries per brewery
@@ -224,24 +229,28 @@ class dtwsPriceScraper:
 	#		   {Beer 2}, ...]
 	#				}
 	def createProductDict(self):
+		print "============================="
+		print "         RAW PRODUCTS        "
+		print "============================="
 		for product in self.products:
 			newProduct = {}
 			try:
 				print(product)
-				raw_input("prod")
+				#raw_input("prod")
 				brandL = product.index(';')+1
 				brandH = product.index(';', brandL+1)
 				currentBrand = product[brandL:brandH]
 				info = self.productInfo(product[brandH:])
 				if info is None:
-					print("None Info?")
+					print("Could not find match post cleaning: ")
 					print product
-					raw_input("wtf")
+					#raw_input("wtf")
 					continue
 				if not info:
-					print("False info?")
+					print("Could not find match post cleaning: ")
 					print info
-					raw_input("false")
+					print product
+					#raw_input("false")
 					continue
 				else:
 					newProduct['brewery'] = currentBrand.capitalize()
@@ -261,10 +270,10 @@ class dtwsPriceScraper:
 					newProduct['price'] = price
 					if newProduct['brewery'] not in self.productTable:
 						self.productTable[newProduct['brewery']] = [newProduct]
-						print("new brew")
+						#print("new brew")
 					else:
 						self.productTable[newProduct['brewery']].append(newProduct)
-						print("append brew")
+						#print("append brew")
 			except ValueError:
 				continue
 
@@ -308,8 +317,8 @@ class priceList:
 		if len(name) > 18:
 			if len(name) >= 16*2:
 				name[32:]=u'\u2026'
+			return name
 				
-			return NoEscape('\multirow{1}{15ex}{'+name+'}')
 		else:
 			return name
 
@@ -320,25 +329,28 @@ class priceList:
 		self.document.packages.add(NoEscape('\usepackage{enumitem}'))
 		self.document.packages.add(NoEscape('\usepackage[T1]{fontenc}'))
 		self.document.packages.add(NoEscape('\usepackage{nimbussans}'))
-		self.document.packages.add(NoEscape('\usepackage{multirow}'))
+		self.document.packages.add(NoEscape('\usepackage[table]{xcolor}'))
+		self.document.packages.add(NoEscape('\usepackage{hanging}'))
 		self.document._propagate_packages()
 		self.document.append(NoEscape('\setlist{nosep}'))
 		self.document.append(NoEscape('\setlength{\columnseprule}{0.5pt}'))
 		self.document.append(NoEscape('\setlength{\columnsep}{1cm}'))
 		self.document.append(NoEscape('\\renewcommand{\\familydefault}{\sfdefault}'))
 		self.document.append(NoEscape('\sffamily'))
-
+		self.document.append(NoEscape('\definecolor{lightgray}{gray}{0.9}'))
+		self.document.append(NoEscape('\\rowcolors{1}{}{lightgray}'))
 		with self.document.create(self.MultiCol(arguments='3')):
 			self.document.append(Section(NoEscape('\\fontfamily{fvm}\selectfont '+listName), numbering=False))
 			for brewery in craftBeerDict.keys():
 				with self.document.create(Subsection(brewery, numbering=False)):
-					with self.document.create(Tabular('l c r')) as brewTable:
+					with self.document.create(Tabular(NoEscape('>{\\raggedright}p{16ex\hangindent=3ex} c r'))) as brewTable:
 
 						for beer in craftBeerDict[brewery]:
 							brewTable.add_row([self.productNameWrapped(beer['product']), beer['size']+' x '+beer['pack'], beer['price']])
-							if len(beer['product']) > 18:
-								brewTable.add_empty_row()
-		self.document.generate_pdf(self.pdfName, clean=True, clean_tex=False, silent=False)
+		print "Making price list..."
+		self.document.generate_pdf(self.pdfName, clean=True, clean_tex=False, silent=True)
+		#print os.getcwd()+'/'+self.pdfName+".pdf"
+		subprocess.call(["xdg-open", os.getcwd()+'/'+self.pdfName+".pdf"])
 
 
 
